@@ -29,17 +29,7 @@ Check `test_voice_episodes/` for examples of the data format and audio files:
 cat test_voice_episodes/test.json
 ```
 
-**Sample Audio:** Listen to what VERA episodes sound like:
-
-<audio controls>
-  <source src="test_voice_episodes/audio/vera_aime_0a923d23.wav" type="audio/wav">
-  Your browser does not support the audio element.
-</audio>
-
-<audio controls>
-  <source src="test_voice_episodes/audio/vera_browsecomp_9c79d2a8.wav" type="audio/wav">
-  Your browser does not support the audio element.
-</audio>
+**Sample Audio:** Check the audio files in `test_voice_episodes/audio/` to hear what VERA episodes sound like.
 
 ### Download Complete Dataset
 
