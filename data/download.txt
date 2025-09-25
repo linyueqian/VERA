@@ -1,1 +1,6 @@
-Please download the complet dataset from https://drive.google.com/file/d/1_pfh4cfihfr7_dVyWCkcRbQx1iQVw3-A/
+VERA Anonymous Dataset - Download Instructions
+
+This dataset is shared anonymously for peer review purposes.
+No author information is included in the dataset files.
+
+Download URL: https://osf.io/4k2t7?view_only=3fa7b16f71234b7c97f98a59c4f213e7
