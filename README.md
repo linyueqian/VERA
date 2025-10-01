@@ -4,6 +4,8 @@
 
 **Voice Evaluation of Reasoning Ability: Diagnosing the Modality-Induced Performance Gap**
 
+![VERA overview](assets/vera.png)
+
 We present Voice Evaluation of Reasoning Ability (VERA), a benchmark for evaluating reasoning ability in voice-interactive systems under real-time conversational constraints. VERA comprises 2,931 voice-native episodes derived from established text benchmarks and organized into five tracks (Math, Web, Science, Long-Context, Factual). Each item is adapted for speech interaction while preserving reasoning difficulty.
 
 ## Installation
