@@ -11,10 +11,9 @@ from typing import Dict, Any, List
 from pathlib import Path
 
 from ..shared.timing_utils import (
-    make_timed_api_request,
     create_turn_result,
     create_standardized_episode_result,
-    create_standardized_batch_result
+    create_standardized_batch_result,
 )
 
 
@@ -58,16 +57,18 @@ class GPT5OpenAIBrowseAdapter:
 
         duration = time.time() - start
         batch = create_standardized_batch_result(
-            f"{self.model_name}_openai_browse_{self.reasoning_effort}",
-            episodes,
-            processed,
-            duration,
-            max_concurrent
+            episodes=processed,
+            total_time=duration,
+            model_name=f"{self.model_name}_openai_browse_{self.reasoning_effort}",
+            metadata={"max_concurrent": max_concurrent},
         )
         batch_file = output_path / f"gpt5_openai_browse_batch_{int(time.time())}.json"
         with open(batch_file, 'w') as f:
             json.dump(batch, f, indent=2)
-        print(f"[GPT-5 OpenAI Browse] Batch completed: {batch['successful']}/{len(episodes)} successful")
+        print(
+            f"[GPT-5 OpenAI Browse] Batch completed: "
+            f"{batch['summary']['successful_episodes']}/{batch['summary']['total_episodes']} successful"
+        )
         return batch
 
     def process_episode(self, episode_data: Dict[str, Any], output_dir: str) -> Dict[str, Any]:
@@ -85,7 +86,12 @@ class GPT5OpenAIBrowseAdapter:
             turn_start = time.time()
             prompt = self._prepare_prompt(turn, episode_data, turn_idx)
             response_data = self._call_openai_responses(prompt)
-            turn_time_ms = (time.time() - turn_start) * 1000
+            turn_end = time.time()
+            timing = {
+                "start_time": turn_start,
+                "end_time": turn_end,
+                "duration": turn_end - turn_start,
+            }
 
             model_metadata = {
                 'model': self.model_name,
@@ -94,27 +100,36 @@ class GPT5OpenAIBrowseAdapter:
             }
 
             error = response_data.get('error') if 'error' in response_data else None
-            turn_result_obj = create_turn_result(
+            response_text = (
+                response_data.get('output', {}).get('content')
+                if isinstance(response_data.get('output'), dict)
+                else response_data.get('output', '')
+            ) or response_data.get('text', '') or ''
+
+            turn_result = create_turn_result(
                 turn_index=turn_idx,
-                user_input=turn.get('text_content', ''),
-                response_data=response_data,
-                total_turn_time_ms=turn_time_ms,
-                model_metadata=model_metadata,
-                error=error
+                prompt=prompt,
+                response=response_text,
+                timing=timing,
+                success=(error is None),
+                error=error,
+                metadata=model_metadata,
             )
-            tr = turn_result_obj.to_dict()
-            turns_results.append(tr)
+            turns_results.append(turn_result)
             if not error:
                 total_tokens += response_data.get('usage', {}).get('total_tokens', 0)
 
         session_duration = time.time() - session_start
+        success = all(t.get('success', True) for t in turns_results)
         return create_standardized_episode_result(
             episode_id=episode_id,
-            model_name=f"{self.model_name}_openai_browse",
-            turn_results=turns_results,
-            session_duration=session_duration,
-            total_tokens=total_tokens,
-            reasoning_data={'responses': [t['model_response'] for t in turns_results]}
+            turns=turns_results,
+            total_time=session_duration,
+            success=success,
+            metadata={
+                "model_name": f"{self.model_name}_openai_browse",
+                "total_tokens": total_tokens,
+            },
         )
 
     def _prepare_prompt(self, turn: Dict[str, Any], episode_data: Dict[str, Any], turn_idx: int) -> str:
@@ -162,3 +177,6 @@ class GPT5OpenAIBrowseAdapter:
             return {"error": "Request timed out"}
         except Exception as e:
             return {"error": f"Unexpected error: {e}"}
+
+# Backward-compatible alias for tests and external code
+GPT5Adapter = GPT5OpenAIBrowseAdapter

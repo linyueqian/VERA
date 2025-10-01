@@ -63,7 +63,6 @@ class BaseAdapter(ABC):
         max_concurrent = max_concurrent or self.config.max_concurrent
         print(f"[{self.model_name}] Batch processing {len(episodes)} episodes (max {max_concurrent} concurrent)")
 
-        # Create output directory
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
 
@@ -74,11 +73,9 @@ class BaseAdapter(ABC):
             async with semaphore:
                 return await asyncio.to_thread(self.process_episode, episode, output_dir)
 
-        # Process episodes concurrently
         tasks = [process_one(ep) for ep in episodes]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # Handle exceptions in results
         processed_results = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):

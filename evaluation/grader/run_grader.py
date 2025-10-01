@@ -8,7 +8,7 @@ Usage:
 
   uv run python evaluation/grader/run_grader.py batch \
       --dataset data/final_dataset/text/simpleqa_voice_episodes.json \
-      --results test_output/gpt4o_simpleqa_*/gpt4o_azure_results_*.json \
+      --results test_output/gpt4o_simpleqa_*/gpt4o_openai_browse_batch_*.json \
       [--benchmark simpleqa]
 """
 
@@ -65,13 +65,22 @@ def _load_results(results_glob: str) -> List[Dict[str, Any]]:
 
 
 def _extract_predicted_answer(episode_result: Dict[str, Any]) -> Optional[str]:
-    # Try to retrieve last assistant response text
-    turns = episode_result.get("turn_results", [])
-    if not turns:
-        return None
-    # Use the last model_response field
-    last = turns[-1]
-    return last.get("model_response")
+    """Extract the assistant response text from per-episode result.
+
+    Supports both legacy fields (turn_results/model_response) and
+    standardized fields (turns/response).
+    """
+    # Legacy shape
+    turns = episode_result.get("turn_results")
+    if isinstance(turns, list) and turns:
+        return turns[-1].get("model_response")
+
+    # Standardized shape
+    turns = episode_result.get("turns")
+    if isinstance(turns, list) and turns:
+        return turns[-1].get("response")
+
+    return None
 
 
 def _summarize_counts(labels: List[GradeLabel]) -> Dict[str, Any]:
@@ -202,13 +211,13 @@ def main():
         def dataset_path(ds: str) -> Path:
             return dataset_dir / f"{ds}_voice_episodes.json"
 
-        # Map model -> batch filename pattern within the run folder
+        # Map model -> batch filename pattern within the run folder (new standardized adapters)
         batch_prefix = {
-            'gpt4o': 'gpt4o_azure_batch_',
-            'gpt5-instant': 'gpt5_instant_batch_',
-            'gpt5-thinking': 'gpt5_thinking_batch_',
-            'gemini-2.5-pro': 'gemini_25_pro_browse_vera_',
-            'gemini-2.5-flash': 'gemini_25_flash_browse_vera_',
+            'gpt4o': 'gpt4o_openai_browse_batch_',
+            'gpt5-instant': 'gpt5_openai_browse_batch_',
+            'gpt5-thinking': 'gpt5_openai_browse_batch_',
+            'gemini-2.5-pro': 'gemini_25_pro_browse_batch_',
+            'gemini-2.5-flash': 'gemini_25_flash_browse_batch_',
         }
 
         base = Path('test_output')
@@ -241,12 +250,13 @@ def main():
                 for cand in reversed(run_dirs):
                     # any batch or per-episode results inside?
                     prefix = batch_prefix.get(model)
+                    # Backward-compatible per-episode prefix patterns (legacy + current)
                     per_prefix = {
-                        'gpt4o': 'gpt4o_azure_results_',
-                        'gpt5-instant': 'gpt5_instant_azure_results_',
-                        'gpt5-thinking': 'gpt5_thinking_azure_results_',
-                        'gemini-2.5-pro': 'gemini_25_pro_browse_vera_',
-                        'gemini-2.5-flash': 'gemini_25_flash_browse_vera_',
+                        'gpt4o': None,
+                        'gpt5-instant': None,
+                        'gpt5-thinking': None,
+                        'gemini-2.5-pro': 'gemini_25_pro_browse_',
+                        'gemini-2.5-flash': 'gemini_25_flash_browse_',
                     }.get(model)
                     if list(cand.glob(f"{prefix}*.json")) or list(cand.glob(f"{per_prefix}*.json")):
                         latest_dir = cand
@@ -265,11 +275,11 @@ def main():
                 else:
                     # Fallback to per-episode results if no batch file is present
                     per_prefix = {
-                        'gpt4o': 'gpt4o_azure_results_',
-                        'gpt5-instant': 'gpt5_instant_azure_results_',
-                        'gpt5-thinking': 'gpt5_thinking_azure_results_',
-                        'gemini-2.5-pro': 'gemini_25_pro_browse_vera_',
-                        'gemini-2.5-flash': 'gemini_25_flash_browse_vera_',
+                        'gpt4o': None,
+                        'gpt5-instant': None,
+                        'gpt5-thinking': None,
+                        'gemini-2.5-pro': 'gemini_25_pro_browse_',
+                        'gemini-2.5-flash': 'gemini_25_flash_browse_',
                     }.get(model)
                     if per_prefix:
                         per_files = sorted(latest_dir.glob(f"{per_prefix}*.json"))
@@ -324,12 +334,13 @@ def main():
                 labels, detailed = asyncio.run(_grade_all_latest())
                 overall.extend(detailed)
                 summary = _summarize_counts(labels)
+                results_file_for_summary = results_glob or ""
                 summary_rows.append({
                     "model": model,
                     "dataset": ds,
                     **summary,
                     "results_dir": str(latest_dir),
-                    "results_file": batch_file,
+                    "results_file": results_file_for_summary,
                 })
 
                 # write per-pair file into the corresponding run folder

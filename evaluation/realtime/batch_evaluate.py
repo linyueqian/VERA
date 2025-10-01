@@ -215,7 +215,7 @@ def run_single_inference(audio_file: Path, episode_json: Path, output_dir: Path,
 
     # Prepare command
     cmd = [
-        "/opt/venv/bin/python", str(azure_script),
+        sys.executable, str(azure_script),
         str(episode_json),
         str(result_dir),
         "--mode", "audio",
@@ -381,7 +381,8 @@ def main():
     voice_dir = args.voice_dir
     dataset_dir = args.dataset_dir
     output_dir = Path(args.output_dir)  # Convert to Path object
-    azure_script = Path("models/realtime/inference/azure_gpt_realtime/main.py")
+    # Use the existing Azure GPT Realtime runner
+    azure_script = Path("models/realtime/gpt_realtime.py")
     
     # Validate paths
     if not voice_dir.exists():

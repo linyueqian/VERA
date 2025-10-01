@@ -10,8 +10,8 @@ We present Voice Evaluation of Reasoning Ability (VERA), a benchmark for evaluat
 
 ```bash
 # Clone the repository
-git clone https://github.com/linyueqian/vera.git
-cd vera
+git clone https://github.com/linyueqian/VERA.git
+cd VERA
 
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
@@ -26,7 +26,7 @@ The VERA dataset contains 2,931 voice-native episodes across five tracks. Questi
 
 ### Download
 
-Download the complete dataset from OSF: https://osf.io/4k2t7?view_only=3fa7b16f71234b7c97f98a59c4f213e7
+Download the complete dataset from Google Drive: https://drive.google.com/file/d/1k0b4qXfQ16fVqe-hMn_GSsfc0exCLgSq/view?usp=sharing
 
 ### Sample Data
 
@@ -65,6 +65,10 @@ uv run python evaluation/realtime/batch_evaluate.py
 ### 3. View results
 
 Results will be saved in the specified output directory with performance metrics and analysis.
+
+## Acknowledgements
+
+We thank the [Full-Duplex-Bench](https://github.com/DanielLin94144/Full-Duplex-Bench) project for their implementations of several realtime models, including Freeze-Omni, Moshi, and Sonic, which we adapted for use in VERA.
 
 ## Citation
 

@@ -15,10 +15,9 @@ from google import genai
 from google.genai import types
 
 from ..shared.timing_utils import (
-    make_timed_api_request,
     create_turn_result,
     create_standardized_episode_result,
-    create_standardized_batch_result
+    create_standardized_batch_result,
 )
 
 
@@ -82,18 +81,20 @@ class Gemini25FlashBrowseAdapter:
 
         duration = time.time() - start
         batch = create_standardized_batch_result(
-            f"{self.model_name}_gemini_browse",
-            episodes,
-            processed,
-            duration,
-            max_concurrent
+            episodes=processed,
+            total_time=duration,
+            model_name=f"{self.model_name}_gemini_browse",
+            metadata={"max_concurrent": max_concurrent},
         )
 
         batch_file = output_path / f"gemini_25_flash_browse_batch_{int(time.time())}.json"
         with open(batch_file, 'w') as f:
             json.dump(batch, f, indent=2)
 
-        print(f"[Gemini 2.5 Flash Browse] Batch completed: {batch['successful']}/{len(episodes)} successful")
+        print(
+            f"[Gemini 2.5 Flash Browse] Batch completed: "
+            f"{batch['summary']['successful_episodes']}/{batch['summary']['total_episodes']} successful"
+        )
         return batch
 
     def process_episode(self, episode_data: Dict[str, Any], output_dir: str) -> Dict[str, Any]:
@@ -127,7 +128,12 @@ class Gemini25FlashBrowseAdapter:
             # Call Gemini with or without search
             response_data = self._call_gemini_with_search(chat, prompt, use_search)
 
-            turn_time_ms = (time.time() - turn_start) * 1000
+            turn_end = time.time()
+            timing = {
+                'start_time': turn_start,
+                'end_time': turn_end,
+                'duration': turn_end - turn_start,
+            }
 
             # Extract metadata including grounding information
             model_metadata = {
@@ -152,17 +158,17 @@ class Gemini25FlashBrowseAdapter:
             error = response_data.get('error') if 'error' in response_data else None
 
             # Create standardized turn result
-            turn_result_obj = create_turn_result(
+            response_text = response_data.get('text', '')
+            turn_result = create_turn_result(
                 turn_index=turn_idx,
-                user_input=turn.get('text_content', ''),
-                response_data=self._format_response_for_timing_utils(response_data),
-                total_turn_time_ms=turn_time_ms,
-                model_metadata=model_metadata,
-                error=error
+                prompt=prompt,
+                response=response_text,
+                timing=timing,
+                success=(error is None),
+                error=error,
+                metadata=model_metadata,
             )
-
-            tr = turn_result_obj.to_dict()
-            turns_results.append(tr)
+            turns_results.append(turn_result)
 
             if not error:
                 # Extract token usage
@@ -172,16 +178,17 @@ class Gemini25FlashBrowseAdapter:
         session_duration = time.time() - session_start
 
         # Create standardized episode result
+        success = all(t.get('success', True) for t in turns_results)
         result = create_standardized_episode_result(
             episode_id=episode_id,
-            model_name=f"{self.model_name}_gemini_browse",
-            turn_results=turns_results,
-            session_duration=session_duration,
-            total_tokens=total_tokens,
-            reasoning_data={
-                'responses': [t['model_response'] for t in turns_results],
-                'search_usage': self._calculate_search_usage(turns_results)
-            }
+            turns=turns_results,
+            total_time=session_duration,
+            success=success,
+            metadata={
+                'model_name': f"{self.model_name}_gemini_browse",
+                'total_tokens': total_tokens,
+                'search_usage': self._calculate_search_usage(turns_results),
+            },
         )
 
         # Save results to file

@@ -18,23 +18,11 @@ import yaml
 # Load environment variables from .env file
 load_dotenv()
 
-# Add models to path
-models_path = str(Path(__file__).parent.parent.parent / 'models' / 'text')
-if models_path not in sys.path:
-    sys.path.insert(0, models_path)
-
-# Add project root to path for absolute imports
-project_root = str(Path(__file__).parent.parent.parent)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from gpt4o_azure import GPT4oAzureAdapter
-from gpt5_instant_azure import GPT5InstantAzureAdapter
-from gpt5_thinking_azure import GPT5ThinkingAzureAdapter
-from gpt4o_openai_browse import GPT4oOpenAIBrowseAdapter
-from gpt5_openai_browse import GPT5OpenAIBrowseAdapter
-from gemini_25_pro_browse import Gemini25ProBrowseAdapter
-from gemini_25_flash_browse import Gemini25FlashBrowseAdapter
+# Use explicit package imports for adapters present in this repository
+from models.text.gpt4o import GPT4oOpenAIBrowseAdapter
+from models.text.gpt5 import GPT5OpenAIBrowseAdapter
+from models.text.gemini25_pro import Gemini25ProBrowseAdapter
+from models.text.gemini25_flash import Gemini25FlashBrowseAdapter
 
 
 class TextModelEvaluator:
@@ -70,62 +58,31 @@ class TextModelEvaluator:
     def _get_openai_api_key(self) -> Optional[str]:
         return os.getenv('OPENAI_API_KEY') or (self.config.get('api_keys', {}) or {}).get('openai_api_key')
 
-    def _get_azure_api_key(self) -> Optional[str]:
-        return (
-            os.getenv('AZURE_OPENAI_API_KEY')
-            or (self.config.get('azure', {}) or {}).get('api_key')
-            or (self.config.get('api_keys', {}) or {}).get('azure_api_key')
-        )
-
-    def _get_azure_endpoint(self) -> Optional[str]:
-        ep = os.getenv('AZURE_OPENAI_ENDPOINT') or (self.config.get('azure', {}) or {}).get('http_base_url')
-        if ep:
-            return ep.rstrip('/')
-        return None
+    # Azure variants are not wired in this repository's adapters; OpenAI browse is used instead.
 
     def _get_gemini_api_key(self) -> Optional[str]:
         return os.getenv('GEMINI_API_KEY') or (self.config.get('api_keys', {}) or {}).get('gemini_api_key')
         
     def _create_gpt4o_adapter(self):
-        """Create GPT-4o Azure adapter"""
-        if (self._current_dataset_name or '').lower().startswith('browsecomp'):
-            openai_key = self._get_openai_api_key()
-            if not openai_key:
-                raise ValueError("browsecomp requires OPENAI_API_KEY for OpenAI browse adapters")
-            return GPT4oOpenAIBrowseAdapter(api_key=openai_key)
-        azure_endpoint = self._get_azure_endpoint()
-        api_key = self._get_azure_api_key()
-        if not azure_endpoint or not api_key:
-            raise ValueError("GPT-4o requires AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY environment variables")
-        return GPT4oAzureAdapter(azure_endpoint, api_key)
+        """Create GPT-4o OpenAI browse adapter (used for all tracks)."""
+        openai_key = self._get_openai_api_key()
+        if not openai_key:
+            raise ValueError("GPT-4o requires OPENAI_API_KEY for OpenAI browse adapter")
+        return GPT4oOpenAIBrowseAdapter(api_key=openai_key)
         
     def _create_gpt5_instant_adapter(self):
-        """Create GPT-5 Instant Azure adapter"""
-        if (self._current_dataset_name or '').lower().startswith('browsecomp'):
-            openai_key = self._get_openai_api_key()
-            if not openai_key:
-                raise ValueError("browsecomp requires OPENAI_API_KEY for OpenAI browse adapters")
-            # instant variant => low reasoning effort
-            return GPT5OpenAIBrowseAdapter(api_key=openai_key, reasoning_effort='low', reasoning_summary='auto')
-        azure_endpoint = self._get_azure_endpoint()
-        api_key = self._get_azure_api_key()
-        if not azure_endpoint or not api_key:
-            raise ValueError("GPT-5 Instant requires AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY environment variables")
-        return GPT5InstantAzureAdapter(azure_endpoint, api_key)
+        """Create GPT-5 Instant (OpenAI browse) with low reasoning effort."""
+        openai_key = self._get_openai_api_key()
+        if not openai_key:
+            raise ValueError("GPT-5 Instant requires OPENAI_API_KEY for OpenAI browse adapter")
+        return GPT5OpenAIBrowseAdapter(api_key=openai_key, reasoning_effort='low', reasoning_summary='auto')
         
     def _create_gpt5_thinking_adapter(self):
-        """Create GPT-5 Thinking Azure adapter"""
-        if (self._current_dataset_name or '').lower().startswith('browsecomp'):
-            openai_key = self._get_openai_api_key()
-            if not openai_key:
-                raise ValueError("browsecomp requires OPENAI_API_KEY for OpenAI browse adapters")
-            # thinking variant => high reasoning effort
-            return GPT5OpenAIBrowseAdapter(api_key=openai_key, reasoning_effort='high', reasoning_summary='detailed')
-        azure_endpoint = self._get_azure_endpoint()
-        api_key = self._get_azure_api_key()
-        if not azure_endpoint or not api_key:
-            raise ValueError("GPT-5 Thinking requires AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_API_KEY environment variables")
-        return GPT5ThinkingAzureAdapter(azure_endpoint, api_key)
+        """Create GPT-5 Thinking (OpenAI browse) with high reasoning effort."""
+        openai_key = self._get_openai_api_key()
+        if not openai_key:
+            raise ValueError("GPT-5 Thinking requires OPENAI_API_KEY for OpenAI browse adapter")
+        return GPT5OpenAIBrowseAdapter(api_key=openai_key, reasoning_effort='high', reasoning_summary='detailed')
 
     def _create_gemini_25_pro_adapter(self):
         """Create Gemini 2.5 Pro adapter with browse support"""
@@ -244,24 +201,30 @@ class TextModelEvaluator:
         print(f"Starting async evaluation with {len(episodes)} episodes")
         start_time = time.time()
         
-        # All models now support async batch processing
+        # All adapters implement async batch processing that returns standardized batch result
         results = await adapter.process_episodes_batch(episodes, output_dir, max_concurrent)
                     
         end_time = time.time()
         duration = end_time - start_time
         
         # Save summary
+        # Derive basic counters from standardized batch result
+        summary_counts = results.get('summary', {}) if isinstance(results, dict) else {}
+        total_episodes = summary_counts.get('total_episodes', len(episodes))
+        successful = summary_counts.get('successful_episodes', 0)
+        failed = total_episodes - successful
+
         summary = {
             'model': model_name,
             'dataset': dataset_name,
             'dataset_path': dataset_path,
             'output_directory': output_dir,
-            'total_episodes': len(episodes),
-            'processed': results.get('processed', 0),
-            'successful': results.get('successful', 0),
-            'failed': results.get('failed', 0),
+            'total_episodes': total_episodes,
+            'processed': total_episodes,
+            'successful': successful,
+            'failed': failed,
             'duration_seconds': duration,
-            'episodes_per_second': len(episodes) / duration if duration > 0 else 0,
+            'episodes_per_second': total_episodes / duration if duration > 0 else 0,
             'timestamp': datetime.now().isoformat(),
             'max_concurrent': max_concurrent,
             'async_processing': True

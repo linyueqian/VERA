@@ -24,10 +24,8 @@ import logging
 import threading
 from collections import deque
 
-# Add parent directories to path for imports
-sys.path.append(str(Path(__file__).parent.parent.parent))  # Add project root
+sys.path.append(str(Path(__file__).parent.parent.parent))
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -46,22 +44,18 @@ class RateLimiter:
         with self.lock:
             now = time.time()
             
-            # Remove requests older than 1 minute
             while self.requests and now - self.requests[0] > 60:
                 self.requests.popleft()
             
-            # If we're at the limit, wait
             if len(self.requests) >= self.max_requests:
                 sleep_time = 60 - (now - self.requests[0]) + 1  # +1 for buffer
                 logger.info(f"Rate limit reached, sleeping for {sleep_time:.1f}s")
                 time.sleep(sleep_time)
                 
-                # Clean up old requests after sleep
                 now = time.time()
                 while self.requests and now - self.requests[0] > 60:
                     self.requests.popleft()
             
-            # Record this request
             self.requests.append(now)
 
 def detect_benchmark_from_dataset(dataset_file: Path) -> str:
@@ -78,7 +72,6 @@ def detect_benchmark_from_dataset(dataset_file: Path) -> str:
     elif "aime" in dataset_name:
         return "aime"
     else:
-        # Extract from filename before _voice_episodes.json
         base_name = dataset_name.replace("_voice_episodes.json", "")
         return base_name
 
@@ -90,14 +83,12 @@ def create_benchmark_report(benchmark: str, results: List[Dict], output_dir: Pat
     successful = [r for r in results if r.get("success", False)]
     failed = [r for r in results if not r.get("success", False)]
     
-    # Calculate accuracy statistics
     total_episodes = len(results)
     accuracy_count = 0
     total_with_answers = 0
     
     for result in results:
         if result.get("success", False):
-            # Check if has expected answer
             if result.get("expected_answer"):
                 total_with_answers += 1
                 if result.get("contains_answer", False):
@@ -138,10 +129,9 @@ def run_voice_model_evaluation(dataset_file: Path, model_type: str, output_dir: 
     start_time = datetime.now()
     logger.info(f"Starting evaluation of {dataset_file.name} with {model_type}")
     
-    # Prepare command based on model type
     if model_type == "qwen2_audio_adaptive":
         cmd = [
-            "python", "models/voice/qwen2_audio_adaptive.py",
+            sys.executable, "models/voice/qwen2_audio.py",
             "--dataset-dir", str(dataset_file.parent),
             "--specific-dataset", dataset_file.name,
             "--output-dir", str(output_dir),
@@ -168,12 +158,10 @@ def run_voice_model_evaluation(dataset_file: Path, model_type: str, output_dir: 
     else:
         raise ValueError(f"Unknown model type: {model_type}")
     
-    # Add max episodes limit if specified
     if args.max_episodes and model_type == "qwen2_audio_adaptive":
         cmd.extend(["--max-episodes", str(args.max_episodes)])
-    
+
     try:
-        # Run the evaluation
         logger.info(f"Running command: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=args.timeout)
         
@@ -188,7 +176,6 @@ def run_voice_model_evaluation(dataset_file: Path, model_type: str, output_dir: 
                 "duration": (datetime.now() - start_time).total_seconds()
             }
         
-        # Parse results from output directory
         benchmark_name = detect_benchmark_from_dataset(dataset_file)
         result_dirs = list(output_dir.glob(f"*{benchmark_name}*"))
         
@@ -201,10 +188,8 @@ def run_voice_model_evaluation(dataset_file: Path, model_type: str, output_dir: 
                 "duration": (datetime.now() - start_time).total_seconds()
             }
         
-        # Get the most recent result directory
         latest_result_dir = max(result_dirs, key=lambda x: x.stat().st_mtime)
-        
-        # Read evaluation summary
+
         summary_file = latest_result_dir / "evaluation_summary.json"
         if summary_file.exists():
             with open(summary_file, 'r') as f:
@@ -253,15 +238,12 @@ def process_dataset_batch(dataset_files: List[Path], model_type: str, output_bas
     results = []
     
     for dataset_file in dataset_files:
-        # Apply rate limiting
         rate_limiter.wait_if_needed()
-        
-        # Create output directory for this model/benchmark
+
         benchmark_name = detect_benchmark_from_dataset(dataset_file)
         output_dir = output_base_dir / f"{model_type}_{benchmark_name}"
         output_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Run evaluation
+
         result = run_voice_model_evaluation(dataset_file, model_type, output_dir, args)
         results.append(result)
         
@@ -272,7 +254,6 @@ def process_dataset_batch(dataset_files: List[Path], model_type: str, output_bas
 def find_voice_datasets(voice_dataset_dir: Path, pattern: str = "*_voice_episodes.json", specific_dataset: Optional[str] = None) -> List[Path]:
     """Find all voice dataset files."""
     if specific_dataset:
-        # Handle specific dataset file
         specific_path = Path(specific_dataset)
         if specific_path.is_absolute():
             dataset_files = [specific_path] if specific_path.exists() else []
@@ -283,7 +264,6 @@ def find_voice_datasets(voice_dataset_dir: Path, pattern: str = "*_voice_episode
             logger.error(f"Specific dataset file not found: {specific_dataset}")
             return []
     else:
-        # Use pattern matching
         dataset_files = list(voice_dataset_dir.glob(pattern))
     
     logger.info(f"Found {len(dataset_files)} voice dataset files")
@@ -320,8 +300,7 @@ def main():
                        help="Rate limit: requests per minute")
     parser.add_argument("--timeout", type=int, default=3600,
                        help="Timeout per dataset evaluation in seconds")
-    
-    # Model-specific arguments
+
     parser.add_argument("--batch-size", type=int, default=4,
                        help="Batch size for model evaluation")
     parser.add_argument("--tensor-parallel", type=int, default=4,
@@ -332,64 +311,51 @@ def main():
                        help="Maximum tokens to generate (uses model default if not specified)")
     
     args = parser.parse_args()
-    
-    # Auto-detect model name if not provided
+
     if not args.model_name:
         if args.model_type == "qwen2_audio_adaptive":
             args.model_name = "qwen2_audio_adaptive"
         else:
             args.model_name = args.model_type
-    
-    # Paths
+
     voice_dataset_dir = args.voice_dataset_dir
     output_base_dir = args.output_dir
-    
-    # Validate paths
+
     if not voice_dataset_dir.exists():
         logger.error(f"Voice dataset directory not found: {voice_dataset_dir}")
         return
-    
-    # Create output directory
+
     output_base_dir.mkdir(parents=True, exist_ok=True)
-    
-    # Find dataset files
+
     dataset_files = find_voice_datasets(voice_dataset_dir, args.pattern, args.specific_dataset)
     
     if not dataset_files:
         logger.error("No voice dataset files found")
         return
-    
-    # Limit datasets if specified
+
     if args.limit:
         dataset_files = dataset_files[:args.limit]
         logger.info(f"Limited to first {args.limit} datasets")
-    
-    # Create rate limiter
+
     rate_limiter = RateLimiter(args.rpm)
     
     start_time = datetime.now()
     logger.info(f"Starting batch evaluation of {len(dataset_files)} datasets with {args.model_type}")
-    
-    # Process datasets
+
     if args.max_workers == 1:
-        # Sequential processing
-        all_results = process_dataset_batch(dataset_files, args.model_type, output_base_dir, 
+        all_results = process_dataset_batch(dataset_files, args.model_type, output_base_dir,
                                           rate_limiter, args)
     else:
-        # Parallel processing
         with concurrent.futures.ThreadPoolExecutor(max_workers=args.max_workers) as executor:
-            # Split datasets into chunks for workers
             chunk_size = max(1, len(dataset_files) // args.max_workers)
             chunks = [dataset_files[i:i + chunk_size] for i in range(0, len(dataset_files), chunk_size)]
-            
-            # Submit jobs
+
             futures = []
             for chunk in chunks:
                 future = executor.submit(process_dataset_batch, chunk, args.model_type, 
                                        output_base_dir, rate_limiter, args)
                 futures.append(future)
-            
-            # Collect results
+
             all_results = []
             for future in concurrent.futures.as_completed(futures):
                 chunk_results = future.result()
@@ -397,22 +363,19 @@ def main():
     
     end_time = datetime.now()
     total_duration = (end_time - start_time).total_seconds()
-    
-    # Group results by benchmark
+
     benchmark_results = {}
     for result in all_results:
         benchmark = result.get("benchmark", "unknown")
         if benchmark not in benchmark_results:
             benchmark_results[benchmark] = []
         benchmark_results[benchmark].append(result)
-    
-    # Create reports for each benchmark
+
     benchmark_reports = {}
     for benchmark, results in benchmark_results.items():
         report = create_benchmark_report(benchmark, results, output_base_dir, start_time, args)
         benchmark_reports[benchmark] = report
-        
-        # Save individual benchmark report
+
         benchmark_output_dir = output_base_dir / f"{args.model_type}_{benchmark}"
         benchmark_output_dir.mkdir(parents=True, exist_ok=True)
         
@@ -423,8 +386,7 @@ def main():
         logger.info(f"Benchmark {benchmark}: {report['summary']['successful']}/{report['summary']['total_episodes']} successful")
         if report['summary']['total_with_answers'] > 0:
             logger.info(f"  Accuracy: {report['summary']['accuracy_percentage']:.1f}%")
-    
-    # Create overall summary report
+
     total_successful = sum(len([r for r in results if r.get("success", False)]) for results in benchmark_results.values())
     total_episodes = len(all_results)
     
@@ -454,14 +416,12 @@ def main():
         },
         "benchmark_reports": benchmark_reports
     }
-    
-    # Save overall report
+
     timestamp = start_time.strftime("%Y%m%d_%H%M%S")
     overall_report_file = output_base_dir / f"{args.model_name}_batch_evaluation_summary_{timestamp}.json"
     with open(overall_report_file, 'w') as f:
         json.dump(overall_report, f, indent=2)
-    
-    # Print summary
+
     logger.info(f"\n{'='*60}")
     logger.info(f"Batch Voice Evaluation Complete!")
     logger.info(f"{'='*60}")

@@ -4,9 +4,9 @@ This directory contains the VERA (Voice Evaluation of Reasoning Ability) dataset
 
 ## Download
 
-The complete dataset is hosted on OSF (Open Science Framework):
+The complete dataset is available on Google Drive:
 
-**Download URL:** https://osf.io/4k2t7?view_only=3fa7b16f71234b7c97f98a59c4f213e7
+**Download URL:** https://drive.google.com/file/d/1k0b4qXfQ16fVqe-hMn_GSsfc0exCLgSq/view?usp=sharing
 
 ## Dataset Overview
 

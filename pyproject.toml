@@ -76,20 +76,18 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/anonymous/vera"
-Documentation = "https://github.com/anonymous/vera"
-Repository = "https://github.com/anonymous/vera.git"
-"Bug Tracker" = "https://github.com/anonymous/vera/issues"
+Homepage = "https://github.com/linyueqian/VERA"
+Documentation = "https://github.com/linyueqian/VERA"
+Repository = "https://github.com/linyueqian/VERA.git"
+"Bug Tracker" = "https://github.com/linyueqian/VERA/issues"
 
-[project.scripts]
-vera = "vera.cli.main:cli"
+## No console scripts are exposed by this repository
 
 [tool.setuptools.packages.find]
 where = ["."]
 exclude = ["tests*", "*.tests*", "models*"]
 
-[tool.setuptools.package-data]
-vera = ["*.yaml", "*.yml", "*.json"]
+## No package data declared; this repo is primarily a benchmark codebase
 
 [tool.black]
 line-length = 88
@@ -131,4 +129,4 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=vera --cov-report=html --cov-report=term-missing"
+addopts = "--cov=models --cov=evaluation --cov-report=term-missing"

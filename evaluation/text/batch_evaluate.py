@@ -10,7 +10,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
-from run_evaluation import TextModelEvaluator
+from evaluation.text.run_evaluation import TextModelEvaluator
 
 # Load environment variables from .env file
 load_dotenv()

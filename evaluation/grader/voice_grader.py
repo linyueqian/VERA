@@ -9,7 +9,6 @@ from .base import BaseAccuracyGrader, GradeLabel, GradeResult
 from .llm_grader import LLMAccuracyGrader
 from .asr_processor import ASRProcessor
 from .wer_calculator import WERCalculator
-from .llm_normalizer import LLMAwareWERCalculator
 
 
 class VoiceAccuracyGrader(BaseAccuracyGrader):
@@ -53,9 +52,8 @@ class VoiceAccuracyGrader(BaseAccuracyGrader):
             base_delay=base_delay,
         )
         
-        # WER calculator with LLM normalization for transcript quality
+        # WER calculator for transcript quality
         self.wer_calculator = WERCalculator()
-        self.llm_wer_calculator = LLMAwareWERCalculator()
     
     def _extract_audio_path_from_response(self, response_data: Dict[str, Any]) -> Optional[str]:
         """Extract audio file path from voice output response data."""
@@ -161,12 +159,10 @@ class VoiceAccuracyGrader(BaseAccuracyGrader):
         # Step 3: Calculate WER if expected transcript provided
         wer_metrics = None
         if calculate_wer and expected_transcript:
-            # Use LLM-aware WER calculation for better mathematical content handling
-            wer_metrics = await self.llm_wer_calculator.calculate_normalized_wer_async(
+            wer_metrics = self.wer_calculator.calculate_wer(
                 reference=expected_transcript,
                 hypothesis=transcript,
-                return_details=True,
-                normalize_both=True  # Normalize both reference and hypothesis
+                return_details=True
             )
         
         return {
