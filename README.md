@@ -1,14 +1,16 @@
 # VERA: Voice Evaluation of Reasoning Ability
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT) [![arXiv](https://img.shields.io/badge/arXiv-2509.26542-b31b1b.svg)](https://arxiv.org/abs/2509.26542)
 
-A benchmark for evaluating reasoning capabilities in voice-interactive AI systems.
+**Voice Evaluation of Reasoning Ability: Diagnosing the Modality-Induced Performance Gap**
+
+We present Voice Evaluation of Reasoning Ability (VERA), a benchmark for evaluating reasoning ability in voice-interactive systems under real-time conversational constraints. VERA comprises 2,931 voice-native episodes derived from established text benchmarks and organized into five tracks (Math, Web, Science, Long-Context, Factual). Each item is adapted for speech interaction while preserving reasoning difficulty.
 
 ## Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/anonymous/vera.git
+git clone https://github.com/linyueqian/vera.git
 cd vera
 
 # Install uv if you haven't already
@@ -20,24 +22,22 @@ uv sync
 
 ## Dataset
 
-### Sample Data Structure
+The VERA dataset contains 2,931 voice-native episodes across five tracks. Questions and answers are encrypted using XOR cipher to prevent memorization. See [data/README.md](data/README.md) for complete details on structure, encryption, and decryption.
 
-Check `test_voice_episodes/` for examples of the data format and audio files:
+### Download
+
+Download the complete dataset from OSF: https://osf.io/4k2t7?view_only=3fa7b16f71234b7c97f98a59c4f213e7
+
+### Sample Data
+
+Check `test_voice_episodes/` for unencrypted examples:
 
 ```bash
 # View sample episode structure
 cat test_voice_episodes/test.json
-```
 
-**Sample Audio:** Check the audio files in `test_voice_episodes/audio/` to hear what VERA episodes sound like.
-
-### Download Complete Dataset
-
-```bash
-# Download the complete VERA dataset
-# Check data/download.txt for the download URL
-cat data/download.txt
-# Then use the URL from that file to download the dataset
+# Listen to sample audio
+ls test_voice_episodes/audio/
 ```
 
 ## Quick Start
@@ -68,15 +68,28 @@ Results will be saved in the specified output directory with performance metrics
 
 ## Citation
 
+If you use VERA in your research, please cite our paper:
+
 ```bibtex
-@misc{vera2025,
-  title={Voice Evaluation of Reasoning Ability},
-  author={Anonymous},
+@misc{lin2025vera,
+  title={Voice Evaluation of Reasoning Ability: Diagnosing the Modality-Induced Performance Gap},
+  author={Lin, Yueqian and Hu, Zhengmian and Wang, Qinsi and Liu, Yudong and Zhang, Hengfan and Subramanian, Jayakumar and Vlassis, Nikos and Li, Hai Helen and Chen, Yiran},
   year={2025},
-  url={https://github.com/anonymous/vera}
+  eprint={2509.26542},
+  archivePrefix={arXiv},
+  primaryClass={eess.AS},
+  url={https://arxiv.org/abs/2509.26542}
 }
 ```
 
 ## License
 
-MIT License for code, CC-BY-4.0 for data.
+This project uses a dual licensing structure:
+
+- **Code**: MIT License (see [LICENSE](LICENSE))
+- **Data**: The text data follows upstream licenses (MIT for SimpleQA, BrowseComp, MRCR; CC BY 4.0 for GPQA-Diamond). The audio data is generated with Boson Higgs Audio 2 and is subject to the Boson Higgs Audio 2 Community License.
+
+For complete licensing details, attribution information, and restrictions, please see:
+- [ATTRIBUTIONS.md](ATTRIBUTIONS.md) for data source attributions
+- [NOTICE.txt](NOTICE.txt) for audio generation licensing and restrictions
+- [LICENSES/](LICENSES/) for full license texts

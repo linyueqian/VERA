@@ -1,0 +1,8 @@
+Text JSON: upstream licenses (see ATTRIBUTIONS.md). No text edits.
+Audio: generated with Boson Higgs Audio 2; subject to the Boson Higgs Audio 2 Community License.
+
+"Built with Higgs Materials licensed from Boson AI USA, Inc., Copyright © Boson AI USA, Inc., All Rights Reserved and Meta Llama 3 licensed under the Meta Llama 3 Community License, Copyright © Meta Platforms, Inc., All Rights Reserved."
+
+Restriction: do not use the audio outputs to improve any other large language model.
+
+License texts: see ./LICENSES/
