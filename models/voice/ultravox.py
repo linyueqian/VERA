@@ -26,7 +26,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
 from vllm import LLM, SamplingParams
-from utils.web_search import is_browsecomp_episode, groq_browser_search
+from utils.web_search import is_browsecomp_episode
 
 @dataclass
 class EvaluationConfig:
@@ -146,26 +146,9 @@ class UltravoxAdaptiveEvaluator:
         return "standard"
     
     def handle_browsecomp_search(self, episode: Dict[str, Any], prompt: str) -> str:
-        """Handle web search for BrowseComp tasks"""
-        try:
-            # Extract search query from episode or prompt
-            query = episode.get("query", episode.get("question", ""))[:100]  # Limit length
-            
-            print(f"Performing web search for: {query[:50]}...")
-            search_results = groq_browser_search(query, max_results=3)
-            
-            if search_results:
-                search_context = "\n".join([
-                    f"Source: {result['title']}\nContent: {result['content'][:500]}"
-                    for result in search_results[:2]  # Limit to top 2 results
-                ])
-                return f"{prompt}\n\nSearch Results:\n{search_context}\n\nBased on the audio and search results, please provide your answer."
-            else:
-                return f"{prompt}\n\nNote: Web search was attempted but no results were found."
-                
-        except Exception as e:
-            print(f"Web search failed: {e}")
-            return f"{prompt}\n\nNote: Web search was not available."
+        """No-op placeholder while BrowseComp web search is disabled."""
+        _ = episode  # Kept for signature compatibility
+        return f"{prompt}\n\nNote: Web search is disabled for this release."
     
     def format_prompt_for_ultravox(self, content: str = "", has_audio: bool = True, history: Optional[List[Dict[str, str]]] = None) -> str:
         """Format prompt using Ultravox chat template with optional prior chat history.

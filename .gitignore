@@ -72,3 +72,5 @@ logs/
 
 # Large dataset files (should be downloaded separately)
 data/final_dataset/
+
+.claude

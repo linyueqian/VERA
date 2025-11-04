@@ -30,10 +30,7 @@ sys.path.insert(0, str(project_root))
 af3_path = Path(__file__).parent / "af3"
 sys.path.insert(0, str(af3_path))
 
-from utils.web_search import (
-    is_browsecomp_episode,
-    groq_browser_search
-)
+from utils.web_search import is_browsecomp_episode
 
 # Import AF3 components
 try:
@@ -159,14 +156,8 @@ class AF3AudioFlamingoEvaluator:
                     text_content = f"Context:\n{context_text}\n\nQuestion: {text_content}"
 
         elif task_type == 'browsecomp':
-            # BrowseComp: Add web search context
-            try:
-                if "search" in text_content.lower() or "find" in text_content.lower():
-                    search_results = groq_browser_search(text_content)
-                    if search_results:
-                        text_content = f"Search Results:\n{search_results}\n\nQuestion: {text_content}"
-            except Exception as e:
-                print(f"Warning: Web search failed for {episode.get('id', 'unknown')}: {e}")
+            # BrowseComp: web search disabled; leave prompt unchanged.
+            print(f"BrowseComp detected for {episode.get('id', 'unknown')}, but web search is disabled.")
 
         # Add thinking mode suffix if enabled
         if thinking_mode:

@@ -29,10 +29,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from utils.web_search import (
-    is_browsecomp_episode,
-    groq_browser_search
-)
+from utils.web_search import is_browsecomp_episode
 
 @dataclass
 class EvaluationConfig:
